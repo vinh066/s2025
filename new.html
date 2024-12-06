@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHỨNG KHOÁN PHÁI SINH</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 10px;
+            padding: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 4px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+        }
+
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            font-size: 18px;
+        }
+
+        .vn30-value {
+            text-align: center;
+            font-size: 16px;
+            color: #007bff;
+            margin-top: 10px;
+        }
+
+        .total-row {
+            font-weight: bold;
+            background-color: #f9f9f9;
+        }
+
+        .highlight {
+            background-color: #ffeb3b;
+            transition: background-color 1s ease-out;
+        }
+
+        th:nth-child(1),
+        td:nth-child(1) {
+            width: 30px;
+        }
+
+        th:nth-child(2),
+        td:nth-child(2) {
+            width: 60px;
+        }
+
+        th:nth-child(3),
+        td:nth-child(3),
+        th:nth-child(4),
+        td:nth-child(4),
+        th:nth-child(5),
+        td:nth-child(5),
+        th:nth-child(6),
+        td:nth-child(6),
+        th:nth-child(7),
+        td:nth-child(7) {
+            width: 80px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>CHỈ SỐ VN30</h1>
+    <div id="vn30-value" class="vn30-value">VN30: Đang tính toán...</div>
+    <div id="vn30-reference" class="vn30-value">VN30 tăng hoặc giảm so với tham chiếu</div>
+    <table>
+        <thead>
+            <tr>
+                <th>STT</th>
+                <th>Mã CK</th>
+                <th>Giá tham chiếu</th>
+                <th>Giá biến động</th>
+                <th>CPLH</th>
+                <th>Vốn hóa</th>
+                <th>Trọng số = Vốn hóa cty chia tổng vốn hóa 30 cty</th>
+                <th>VN30 Thành Phần</th>
+                <th>Đóng góp điểm</th>
+                <th>VN30 Thành Phần</th>
+                <th>VN30 Thành Phần</th>
+            </tr>
+        </thead>
+        <tbody id="stocks-table-body">
+            <!-- Dữ liệu sẽ được thêm vào đây -->
+        </tbody>
+        <tfoot>
+            <tr class="total-row">
+                <td colspan="2"><b>Tổng:</b></td>
+                <td id="total-original-price">0</td>
+                <td id="total-live-price">0</td>
+                <td id="total-CPLH">0</td>
+                <td id="total-VH">0</td>
+                <td colspan="2"></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"></script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDd0igQPG9l6BhJEB5sosBAGO3E98tBaWg",
+            authDomain: "s2024-9d502.firebaseapp.com",
+            projectId: "s2024-9d502",
+            storageBucket: "s2024-9d502.firebasestorage.app",
+            messagingSenderId: "975647581063",
+            appId: "1:975647581063:web:56911a0b67b135a345a922",
+            measurementId: "G-3K648BCFX3"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        let previousData = {};
+        const stocksRef = ref(db, "stocks");
+
+        onValue(stocksRef, (snapshot) => {
+            const data = snapshot.val();
+            const tableBody = document.getElementById("stocks-table-body");
+            const vn30ValueDiv = document.getElementById("vn30-value");
+            const vn30ReValueDiv = document.getElementById("vn30-reference");
+            tableBody.innerHTML = "";
+
+            let index = 1;
+            let totalOriginalPrice = 0;
+            let totalLivePrice = 0;
+            let totalCPLH = 0;
+            let totalVH = 0;
+            let vn30Curent = 0;
+            let vn30Reference = 0;
+            // Tính tổng VH và VN30 trước
+            for (const stock in data) {
+                const livePrice = parseFloat(data[stock].live_price);
+                const CPLH = parseFloat(data[stock].additional_column);
+                const VH = CPLH * livePrice / 1000000;
+                totalOriginalPrice += parseFloat(data[stock].original_price);
+                totalLivePrice += livePrice;
+                totalCPLH += CPLH;
+                totalVH += VH;
+            }
+
+            for (const stock in data) {
+                const originalPrice = parseFloat(data[stock].original_price);
+                const livePrice = parseFloat(data[stock].live_price);
+                const CPLH = parseFloat(data[stock].additional_column);
+                const VH = CPLH * livePrice / 1000000;
+                const TS = (VH / totalVH) * 100;
+                const vn30TP = livePrice * TS / 100;
+                const DGD = ((livePrice - originalPrice)*TS);
+                vn30Curent += livePrice * TS / 100;
+                vn30Reference += originalPrice * TS / 100;
+                const row = document.createElement("tr");
+                const isLivePriceChanged = previousData[stock]?.live_price !== data[stock].live_price;
+
+                row.innerHTML = `
+                    <td>${index}</td>
+                    <td>${data[stock].stock_symbol}</td>
+                    <td>${originalPrice.toFixed(2)}</td>
+                    <td class="${isLivePriceChanged ? "highlight" : ""}">${livePrice.toFixed(2)}</td>
+                    <td>${parseInt(CPLH, 10).toLocaleString('vi-VN')}</td>
+                    <td>${parseInt(VH, 10).toLocaleString('vi-VN')}</td>
+                    <td>${TS.toFixed(2)}%</td>
+                    <td>${vn30TP.toFixed(2)}</td>
+                    <td>${DGD.toFixed(2)}</td>
+                `;
+                tableBody.appendChild(row);
+                index++;
+            }
+
+            document.getElementById("total-original-price").textContent = totalOriginalPrice.toFixed(2);
+            document.getElementById("total-live-price").textContent = totalLivePrice.toFixed(2);
+            document.getElementById("total-CPLH").textContent = totalCPLH.toFixed(2);
+            document.getElementById("total-VH").textContent = totalVH.toFixed(2);
+            vn30ReValueDiv.textContent = `VN30 tăng hoặc giảm so với tham chiếu: ${vn30Reference.toFixed(2)}`;
+            const result = ((vn30Curent - vn30Reference) * 100) / vn30Reference;
+            const abc = totalVH/2252.45;
+            vn30ValueDiv.textContent = `VN30 hiện tại: ${abc.toFixed(2)}`;
+            if (result > 0) {
+                vn30ReValueDiv.textContent = `VN30 hiện tại so với VN30 tham chiếu: Tăng ${result.toFixed(2)}%`;
+            } else if (result < 0) {
+                vn30ReValueDiv.textContent = `VN30 hiện tại so với VN30 tham chiếu: Giảm ${Math.abs(result).toFixed(2)}%`;
+            } else {
+                vn30ReValueDiv.textContent = `VN30 Không thay đổi so với tham chiếu.`;
+            }
+            previousData = data;
+
+            setTimeout(() => {
+                document.querySelectorAll(".highlight").forEach(cell => {
+                    cell.classList.remove("highlight");
+                });
+            }, 2000);
+        });
+    </script>
+</body>
+
+</html>
