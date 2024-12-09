@@ -198,7 +198,7 @@
             document.getElementById("total-VH").textContent = totalVH.toFixed(2);
             vn30ReValueDiv.textContent = `VN30 tăng hoặc giảm so với tham chiếu: ${vn30Reference.toFixed(2)}`;
             const result = ((vn30Curent - vn30Reference) * 100) / vn30Reference;
-            const abc = totalVH/2252.45;
+            const abc = totalVH/2515.653;
             vn30ValueDiv.textContent = `VN30 hiện tại: ${abc.toFixed(2)}`;
             if (result > 0) {
                 vn30ReValueDiv.textContent = `VN30 hiện tại so với VN30 tham chiếu: Tăng ${result.toFixed(2)}%`;
